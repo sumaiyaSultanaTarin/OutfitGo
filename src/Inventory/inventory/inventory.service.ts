@@ -18,15 +18,16 @@ export class InventoryService {
         return{
             totalProducts: await this.stockMovementRepository.count(),
             totalStockValue: await this.stockMovementRepository.query(`
-                SELECT SUM(p.price * sm.quantity) AS totalStockValue
-                FROM stock_movements sm,
-                JOIN products p ON p.id = sm.product_i
-                WHERE sm.type = 'inbound'
+            SELECT SUM(p."price" * sm."quantity") AS "totalStockValue"
+            FROM "public"."stock_movements" sm
+            JOIN "public"."products" p ON p."id" = sm."productId"
+            WHERE sm."type" = 'inbound';
+
             `),
             lowStockItems: await this.stockMovementRepository.query(`
-                SELECT COUNT(*) AS losStokeItems
-                FROM products
-                WHERE sm.type = 'inbound'
+            SELECT COUNT(*) AS "lowStockItems"
+            FROM "public"."products"
+            WHERE "stockLevel" < 10
             `)
         };
     }

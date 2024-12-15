@@ -4,9 +4,14 @@ import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductModule } from './Product/product/product.module';
 import { InventoryModule } from './Inventory/inventory/inventory.module';
+import { PerformanceController } from './performance/performance.controller';
+import { PerformanceService } from './performance/performance.service';
+import { PerformanceModule } from './performance/performance.module';
+import { InventoryController } from './Inventory/inventory/inventory.controller';
+import { InventoryService } from './Inventory/inventory/inventory.service';
 
 @Module({
-  imports: [ProductModule, InventoryModule,
+  imports: [ProductModule, InventoryModule,PerformanceModule,
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: 'localhost',
@@ -17,8 +22,9 @@ import { InventoryModule } from './Inventory/inventory/inventory.module';
       autoLoadEntities: true,
       synchronize: true,
     }),
+    
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, PerformanceController,InventoryController],
+  providers: [AppService, PerformanceService,InventoryService],
 })
 export class AppModule {}

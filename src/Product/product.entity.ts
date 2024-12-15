@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { StockMovement } from "src/Inventory/stock-movement.entity";
+import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 
 @Entity('products')
 export class Product{
@@ -31,4 +32,8 @@ export class Product{
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    @OneToMany(() => StockMovement, (stockMovement) => stockMovement.product)
+stockMovements: StockMovement[];
+
 }
