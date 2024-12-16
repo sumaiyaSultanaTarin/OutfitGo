@@ -9,6 +9,7 @@ import { StockMovement } from './Inventory/stock-movement.entity';
 import { OrderController } from './order/order.controller';
 import { OrderService } from './order/order.service';
 import { OrderModule } from './order/order.module';
+import { Order } from './order/order.entity';
 
 @Module({
   imports: [
@@ -20,7 +21,7 @@ import { OrderModule } from './order/order.module';
       password: 'tarin',
       database: '_OutfitGo',
       autoLoadEntities: true,
-      entities: [StockMovement],
+      entities: [StockMovement,Order],
       synchronize: true,
     }),
     ProductModule, 
@@ -29,7 +30,7 @@ import { OrderModule } from './order/order.module';
     OrderModule,
     
   ],
-  controllers: [AppController, OrderController],
-  providers: [AppService, OrderService],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
