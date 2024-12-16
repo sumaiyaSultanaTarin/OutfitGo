@@ -14,6 +14,8 @@ import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
+import { Customer } from './customer.entity';
+import { NotificationsService } from './notifications/notifications.service';
 
 @Module({
   imports: [
@@ -25,7 +27,7 @@ import { JwtAuthGuard } from './jwt-auth.guard';
       password: 'tarin',
       database: '_OutfitGo',
       autoLoadEntities: true,
-      entities: [StockMovement,Order,Vendor],
+      entities: [StockMovement,Order,Vendor,Customer],
       synchronize: true,
     }),
     ConfigModule.forRoot({
