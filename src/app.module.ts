@@ -6,10 +6,14 @@ import { ProductModule } from './Product/product/product.module';
 import { InventoryModule } from './Inventory/inventory/inventory.module';
 import { PerformanceModule } from './performance/performance.module';
 import { StockMovement } from './Inventory/stock-movement.entity';
-import { OrderController } from './order/order.controller';
-import { OrderService } from './order/order.service';
 import { OrderModule } from './order/order.module';
 import { Order } from './order/order.entity';
+import { VendorModule } from './vendor/vendor.module';
+import { Vendor } from './vendor/vendor.entity';
+import { AuthModule } from './auth/auth.module';
+import { ConfigModule } from '@nestjs/config';
+import { APP_GUARD } from '@nestjs/core';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 @Module({
   imports: [
@@ -21,13 +25,18 @@ import { Order } from './order/order.entity';
       password: 'tarin',
       database: '_OutfitGo',
       autoLoadEntities: true,
-      entities: [StockMovement,Order],
+      entities: [StockMovement,Order,Vendor],
       synchronize: true,
+    }),
+    ConfigModule.forRoot({
+      isGlobal: true,
     }),
     ProductModule, 
     InventoryModule,
     PerformanceModule,
     OrderModule,
+    VendorModule,
+    AuthModule,
     
   ],
   controllers: [AppController],

@@ -1,6 +1,9 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { PerformanceService } from './performance.service';
+import { JwtAuthGuard } from 'src/jwt-auth.guard';
 
+
+@UseGuards(JwtAuthGuard) // Protect this endpoint
 @Controller('performance')
 export class PerformanceController {
     constructor(private readonly performanceService: PerformanceService) {}
