@@ -33,7 +33,5 @@ export class Product{
     @UpdateDateColumn()
     updatedAt: Date;
 
-    @OneToMany(() => StockMovement, (stockMovement) => stockMovement.product)
-stockMovements: StockMovement[];
 
 }

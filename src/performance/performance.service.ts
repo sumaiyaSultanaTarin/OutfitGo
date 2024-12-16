@@ -15,7 +15,7 @@ export class PerformanceService {
         const totalRevenue = await this.stockMovementRepository.query(`
             SELECT SUM(sm."quantity" * p."price") AS "totalRevenue"
             FROM "stock_movements" sm
-            JOIN "products" p ON p."id" = sm."product_id"
+            JOIN "products" p ON p."id" = sm."productId"
             WHERE sm."type" = 'outbound'
         `);
 
@@ -36,7 +36,7 @@ export class PerformanceService {
         return this.stockMovementRepository.query(`
             SELECT p."name", SUM(sm."quantity") AS "unitsSold", SUM(sm."quantity" * p."price") AS "revenue"
             FROM "stock_movements" sm
-            JOIN "products" p ON p."id" = sm."product_id"
+            JOIN "products" p ON p."id" = sm."productId"
             WHERE sm."type" = 'outbound'
             GROUP BY p."id"
             ORDER BY "unitsSold" DESC
@@ -49,7 +49,7 @@ export class PerformanceService {
         return this.stockMovementRepository.query(`
             SELECT DATE(sm."createdAt") AS "date", SUM(sm."quantity" * p."price") AS "dailyRevenue"
             FROM "stock_movements" sm
-            JOIN "products" p ON p."id" = sm."product_id"
+            JOIN "products" p ON p."id" = sm."productId"
             WHERE sm."type" = 'outbound'
             GROUP BY DATE(sm."createdAt")
             ORDER BY "date" ASC
