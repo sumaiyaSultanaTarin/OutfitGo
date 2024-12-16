@@ -12,6 +12,7 @@ export class VendorService {
     ) {}
 
     async register(email: string, password: string): Promise<Vendor> {
+        //Checking Duplicacy
         const existingVendor = await this.vendorRepository.findOne({ where: { email } });
         if (existingVendor) {
             throw new ConflictException('Vendor already exists');

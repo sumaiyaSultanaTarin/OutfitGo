@@ -32,21 +32,25 @@ export class InventoryService {
         };
     }
 
+    //To track and Record 
     async logStockMovement(productId: number, type: 'inbound' | 'outbound', quantity: number, notes?: string)
     {
         const StockMovement = this.stockMovementRepository.create({product:{id: productId}, type, quantity, notes});
         return this.stockMovementRepository.save(StockMovement);
     }
 
+    //To create New Restock Request
     async createRestockRequest(productId: number, requestedQuantity: number) {
         const request = this.restockRequestRepository.create({ product: { id: productId }, requestedQuantity });
         return this.restockRequestRepository.save(request);
     }
 
+    //To retrieve all the restock requests 
     async getRestockRequests() {
         return this.restockRequestRepository.find({ relations: ['product'] });
     }
 
+    //To  update the status of a restock request
     async updateRestockRequest(id: number, status: 'Pending' | 'Approved' | 'Rejected') {
         await this.restockRequestRepository.update(id, { status });
         return this.restockRequestRepository.findOne({ where: { id }, relations: ['product'] });

@@ -21,7 +21,7 @@ export class VendorController {
     @Post('login')
     async login(@Body() loginDto: LoginVendorDto) {
         const vendor = await this.vendorService.validateVendor(loginDto.email, loginDto.password);
-        const token = this.jwtService.sign({ id: vendor.id, email: vendor.email });
+        const token = this.jwtService.sign({ id: vendor.id, email: vendor.email }); //A JWT token generated
         return { accessToken: token };
     }
 }

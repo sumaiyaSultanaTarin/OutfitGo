@@ -26,7 +26,7 @@ export class PerformanceService {
         `);
 
         return {
-            totalRevenue: totalRevenue[0]?.totalRevenue || 0,
+            totalRevenue: totalRevenue[0]?.totalRevenue || 0, //No sales
             totalUnitsSold: totalUnitsSold[0]?.totalUnitsSold || 0,
         };
     }

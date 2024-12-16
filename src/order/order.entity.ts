@@ -6,7 +6,7 @@ export class Order{
     @PrimaryGeneratedColumn()
     id: number;
 
-    @ManyToOne(() => Product, (product) => product.id, {onDelete: 'CASCADE'})
+    @ManyToOne(() => Product, (product) => product.id, {onDelete: 'CASCADE'}) //child entities will be deleted
     product: Product;
 
     @Column({length: 255})
