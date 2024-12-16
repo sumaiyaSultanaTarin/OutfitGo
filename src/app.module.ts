@@ -6,6 +6,9 @@ import { ProductModule } from './Product/product/product.module';
 import { InventoryModule } from './Inventory/inventory/inventory.module';
 import { PerformanceModule } from './performance/performance.module';
 import { StockMovement } from './Inventory/stock-movement.entity';
+import { OrderController } from './order/order.controller';
+import { OrderService } from './order/order.service';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -23,9 +26,10 @@ import { StockMovement } from './Inventory/stock-movement.entity';
     ProductModule, 
     InventoryModule,
     PerformanceModule,
+    OrderModule,
     
   ],
-  controllers: [AppController],
-  providers: [AppService],
+  controllers: [AppController, OrderController],
+  providers: [AppService, OrderService],
 })
 export class AppModule {}
