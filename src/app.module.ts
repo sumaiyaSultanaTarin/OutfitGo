@@ -16,6 +16,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Customer } from './customer.entity';
 import { NotificationsService } from './notifications/notifications.service';
+import path from 'path';
+import * as fs from 'fs';
 
 @Module({
   imports: [
@@ -44,4 +46,6 @@ import { NotificationsService } from './notifications/notifications.service';
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule {
+  
+}

@@ -1,9 +1,11 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards, UsePipes, ValidationPipe } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseGuards, UseInterceptors, UsePipes, ValidationPipe } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from 'src/DTOs/create-product.dto';
 import { Product } from '../product.entity';
 import { UpdateProductDto } from 'src/DTOs/update-product.dto';
 import { JwtAuthGuard } from 'src/jwt-auth.guard';
+import { FileInterceptor } from '@nestjs/platform-express';
+import * as multer from 'multer';  // To handle file uploads
 
 
 @UseGuards(JwtAuthGuard) // Protect this endpoint
@@ -12,6 +14,23 @@ export class ProductController {
     constructor(private readonly productService: ProductService)
     {
     }
+
+        // Endpoint to handle bulk product upload
+        @Post('upload-bulk')
+        @UseInterceptors(FileInterceptor('file', {
+            storage: multer.diskStorage({
+                destination: (req, file, cb) => {
+                    cb(null, './uploads');  // Directory to store the uploaded files
+                },
+                filename: (req, file, cb) => {
+                    cb(null, `${Date.now()}-${file.originalname}`);  // File name with timestamp to avoid conflicts
+                }
+            }),
+        }))
+        async uploadBulkProducts(@UploadedFile() file: Express.Multer.File): Promise<string> {
+            const products = await this.productService.processCSV(file.path);  // Process the CSV file
+            return `Successfully uploaded ${products.length} products.`;
+        }
 
     //Routing of Add
     @Post('create')

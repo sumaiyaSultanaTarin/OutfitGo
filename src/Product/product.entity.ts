@@ -1,5 +1,6 @@
 import { StockMovement } from "src/Inventory/stock-movement.entity";
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryColumn, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { ProductVariant } from "./product-variant.entity";
 
 @Entity('products')
 export class Product{
@@ -32,6 +33,9 @@ export class Product{
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    @OneToMany(() => ProductVariant, (variant) => variant.product)
+    variants: ProductVariant[];
 
 
 }

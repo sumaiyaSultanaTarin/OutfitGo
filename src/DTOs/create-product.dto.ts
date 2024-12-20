@@ -1,4 +1,5 @@
-import { IsEmail,IsString, IsNotEmpty, IsOptional, IsDecimal, IsInt } from "class-validator";
+import { IsEmail,IsString, IsNotEmpty, IsOptional, IsDecimal, IsInt, IsArray } from "class-validator";
+import { ProductVariantDto } from "./product-variant.dto";
 
 
 export class CreateProductDto{
@@ -30,6 +31,10 @@ export class CreateProductDto{
     @IsString()
     @IsOptional()
     imageUrl?: string;
+
+    @IsArray()
+    @IsOptional()
+    variants?: ProductVariantDto[];  
     
 
 

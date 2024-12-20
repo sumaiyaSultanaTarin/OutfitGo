@@ -13,7 +13,6 @@ export class NotificationsService {
     // Notify logic for order updates
     notifyOrderUpdate(orderId: number, status: string) {
         console.log(`Order #${orderId} status updated to ${status}`);
-        // Extend this to send email or push notifications.
     }
 
     // To fetch an order by ID
