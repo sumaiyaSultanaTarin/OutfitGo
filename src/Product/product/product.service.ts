@@ -10,6 +10,7 @@ import * as csvParser from 'csv-parser';
 import * as xlsx from 'xlsx';
 import * as path from 'path';
 import { Response } from 'express';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class ProductService {
@@ -19,6 +20,7 @@ export class ProductService {
 
     @InjectRepository(ProductVariant)
     private readonly productVariantRepository: Repository<ProductVariant>,
+    private readonly jwtService: JwtService,
   ) {}
 
   async addProduct(createProductDto: CreateProductDto): Promise<Product> {
@@ -93,7 +95,7 @@ export class ProductService {
   }
 
   //Bulk Upload
-  async processFile(file: Express.Multer.File): Promise<any> {
+  async processFile(file: Express.Multer.File, authHeader: string): Promise<any> {
     const extension = path.extname(file.originalname).toLowerCase();
     if (extension !== '.csv' && extension !== '.xlsx') {
       throw new BadRequestException('Invalid file format. Only CSV or Excel files are allowed.');
@@ -142,6 +144,12 @@ export class ProductService {
           }
         }
 
+        // Extract vendor's email from token
+    const vendorEmail = this.extractEmailFromAuthHeader(authHeader);
+
+    // Send email notification
+    await this.sendEmailNotification(vendorEmail, results, errors);
+
         results.push(savedProduct);
       } catch (error) {
         errors.push({ error: error.message, row });
@@ -152,6 +160,48 @@ export class ProductService {
       success: results.length,
       errors,
     };
+  }
+
+  private extractEmailFromAuthHeader(authHeader: string): string {
+    if (!authHeader) {
+      throw new BadRequestException('Authorization header is missing');
+    }
+
+    const token = authHeader.split(' ')[1];
+    const payload = this.jwtService.decode(token) as any;
+    if (!payload || !payload.email) {
+      throw new BadRequestException('Invalid token: Email not found');
+    }
+
+    return payload.email;
+  }
+
+  private async sendEmailNotification(email: string, results: any[], errors: any[]): Promise<void> {
+    const successCount = results.length;
+    const errorCount = errors.length;
+
+    const successMessage = successCount
+      ? `${successCount} products were successfully uploaded.`
+      : 'No products were successfully uploaded.';
+    const errorMessage = errorCount
+      ? `${errorCount} products had errors during the upload process.`
+      : 'No errors were encountered.';
+
+    const errorDetails = errors
+      .map((err, index) => `Row ${index + 1}: ${err.error}`)
+      .join('\n');
+
+    console.log(`
+      To: ${email}
+      Subject: Bulk Upload Results
+      Message:
+      Bulk Upload Summary:
+      ${successMessage}
+      ${errorMessage}
+      ${errorCount > 0 ? `Errors:\n${errorDetails}` : ''}
+    `);
+
+    // If integrating with a real email service, use a Mailer module here.
   }
 
   private async parseCSV(file: Express.Multer.File): Promise<any[]> {
@@ -181,6 +231,7 @@ export class ProductService {
       throw new Error('Template file not found');
     }
 
+  
     res.download(filePath, 'product.xlsx', (err) => {
       if (err) {
         console.error('Error downloading file:', err);
@@ -188,5 +239,16 @@ export class ProductService {
       }
     });
   }
+
+  async previewFile(file: Express.Multer.File): Promise<any> {
+    const extension = path.extname(file.originalname).toLowerCase();
+    if (extension !== '.csv' && extension !== '.xlsx') {
+      throw new BadRequestException('Invalid file format. Only CSV or Excel files are allowed.');
+    }
+  
+    const data = extension === '.csv' ? await this.parseCSV(file) : await this.parseExcel(file);
+    return { preview: data.slice(0, 10) }; // Return the first 10 rows
+  }
+  
 
 }

@@ -22,6 +22,8 @@ import { JwtAuthGuard } from 'src/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import * as path from 'path';
 import { Response } from 'express';
+import { Headers } from '@nestjs/common';
+
 
 @UseGuards(JwtAuthGuard) // Protect this endpoint
 @Controller('product')
@@ -59,18 +61,32 @@ export class ProductController {
   }
 
   @Post('bulk-upload')
-  @UseInterceptors(FileInterceptor('file'))
-  async bulkUpload(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-    return this.productService.processFile(file);
+@UseInterceptors(FileInterceptor('file'))
+async bulkUpload(
+  @UploadedFile() file: Express.Multer.File,
+  @Headers('authorization') authHeader: string,
+) {
+  if (!file) {
+    throw new BadRequestException('No file uploaded');
   }
 
-  //@Get('template')
-  //downloadTemplate(@Res() res: Response) {
-   // return this.productService.downloadTemplate(res);
-  //}
+  if (!authHeader) {
+    throw new BadRequestException('Authorization header is missing');
+  }
+
+  return this.productService.processFile(file, authHeader);
+}
+
+ 
+@Post('preview')
+@UseInterceptors(FileInterceptor('file'))
+async previewFile(@UploadedFile() file: Express.Multer.File) {
+  if (!file) {
+    throw new BadRequestException('No file uploaded');
+  }
+  return this.productService.previewFile(file);
+}
+
 
  
   @Get('template')
