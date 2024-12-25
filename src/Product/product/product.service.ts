@@ -1,15 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from '../product.entity';
 import { Repository } from 'typeorm';
 import { CreateProductDto } from 'src/DTOs/create-product.dto';
-import { create } from 'domain';
 import { UpdateProductDto } from 'src/DTOs/update-product.dto';
 import { ProductVariant } from '../product-variant.entity';
-import { ProductVariantDto } from 'src/DTOs/product-variant.dto';
 import * as fs from 'fs';
-import * as csv from 'csv-parser'; // CSV parser
+import * as csvParser from 'csv-parser';
+import * as xlsx from 'xlsx';
 import * as path from 'path';
+import { Response } from 'express';
 
 @Injectable()
 export class ProductService {
@@ -92,118 +92,101 @@ export class ProductService {
     return this.productRepository.findOne({ where: { id } });
   }
 
-  // Bulk Product Upload (Process CSV File)
-  async processCSV(filePath: string): Promise<Product[]> {
-    const products: CreateProductDto[] = []; // Store valid products here
+  //Bulk Upload
+  async processFile(file: Express.Multer.File): Promise<any> {
+    const extension = path.extname(file.originalname).toLowerCase();
+    if (extension !== '.csv' && extension !== '.xlsx') {
+      throw new BadRequestException('Invalid file format. Only CSV or Excel files are allowed.');
+    }
 
-    return new Promise((resolve, reject) => {
-      fs.createReadStream(filePath)
-        .pipe(csv()) // Parse CSV
-        .on('data', (row) => {
-          console.log('Raw CSV Row:', row);
+    const data = extension === '.csv' ? await this.parseCSV(file) : await this.parseExcel(file);
+    const results = [];
+    const errors = [];
 
-          // Sanitize and map fields
-          const name = row.name?.trim();
-          const description = row.description?.trim();
-          const price = parseFloat(row.price?.trim());
-          const stockLevel = parseInt(row.stockLevel?.trim(), 10);
-          const category = row.category?.trim();
-          const vendorId = parseInt(row.vendorId?.trim(), 10);
+    for (const row of data) {
+      try {
+        // Validate required fields
+        if (!row.name || !row.price || !row.stockLevel || !row.vendorId) {
+          throw new Error(`Missing required fields for product: ${JSON.stringify(row)}`);
+        }
 
-          const size = row.size?.trim();
-          const sizeStock = parseInt(row.sizeStock?.trim(), 10);
-          const color = row.color?.trim();
-          const colorStock = parseInt(row.colorStock?.trim(), 10);
-
-          console.log('Sanitized Row:', {
-            name,
-            price,
-            stockLevel,
-            category,
-            vendorId,
-          });
-
-          if (
-            !name ||
-            price === null ||
-            stockLevel === null ||
-            !category ||
-            vendorId === null
-          ) {
-            console.error(
-              `Invalid data for product: ${name || 'Unnamed'}. Skipping.`,
-            );
-            return; // Skip invalid row
-          }
-
-          // Map to CreateProductDto
-          const productDto: CreateProductDto = {
-            name,
-            description,
-            price,
-            stockLevel,
-            category,
-            vendorId,
-            variants: this.parseVariants({
-              size,
-              sizeStock,
-              color,
-              colorStock,
-            }),
-          };
-
-          products.push(productDto);
-        })
-        .on('end', async () => {
-          console.log(
-            `Finished reading CSV. Total valid products: ${products.length}`,
-          );
-
-          const savedProducts = [];
-          for (const productDto of products) {
-            try {
-              const product = await this.addProduct(productDto); // Save product to DB
-              savedProducts.push(product);
-            } catch (error) {
-              console.error(`Error saving product ${productDto.name}:`, error);
-            }
-          }
-          console.log(
-            `Successfully uploaded ${savedProducts.length} products.`,
-          );
-          resolve(savedProducts);
-        })
-        .on('error', (error) => {
-          console.error('Error processing CSV:', error);
-          reject(error);
+        // Create and save the product
+        const product = this.productRepository.create({
+          name: row.name,
+          description: row.description || '',
+          price: parseFloat(row.price),
+          stockLevel: parseInt(row.stockLevel, 10),
+          category: row.category || null,
+          vendorId: parseInt(row.vendorId, 10),
+          imageUrl: row.imageUrl || null,
         });
+
+        const savedProduct = await this.productRepository.save(product);
+
+        // Handle product variants (if provided)
+        if (row.variants) {
+          const variants = JSON.parse(row.variants); // Variants should be a JSON array in the file
+          for (const variant of variants) {
+            if (!variant.variantName || !variant.variantValue || !variant.stockLevel) {
+              throw new Error(`Missing required fields for product variant: ${JSON.stringify(variant)}`);
+            }
+
+            const productVariant = this.productVariantRepository.create({
+              product: savedProduct,
+              variantName: variant.variantName,
+              variantValue: variant.variantValue,
+              stockLevel: parseInt(variant.stockLevel, 10),
+            });
+
+            await this.productVariantRepository.save(productVariant);
+          }
+        }
+
+        results.push(savedProduct);
+      } catch (error) {
+        errors.push({ error: error.message, row });
+      }
+    }
+
+    return {
+      success: results.length,
+      errors,
+    };
+  }
+
+  private async parseCSV(file: Express.Multer.File): Promise<any[]> {
+    const results = [];
+    return new Promise((resolve, reject) => {
+      fs.createReadStream(file.path)
+        .pipe(csvParser())
+        .on('data', (data) => results.push(data))
+        .on('end', () => resolve(results))
+        .on('error', (error) => reject(error));
     });
   }
 
-  // Helper method to parse variants from CSV row
-  parseVariants(row: any): ProductVariantDto[] {
-    const variants: ProductVariantDto[] = [];
-
-    // Parse size variant
-    if (row.size && !isNaN(parseInt(row.sizeStock?.trim(), 10))) {
-      variants.push({
-        variantName: 'Size',
-        variantValue: row.size.trim(),
-        stockLevel: parseInt(row.sizeStock?.trim(), 10),
-        price: parseFloat(row.price?.trim()) || 0, // Use product price or default to 0
-      });
-    }
-
-    // Parse color variant
-    if (row.color && !isNaN(parseInt(row.colorStock?.trim(), 10))) {
-      variants.push({
-        variantName: 'Color',
-        variantValue: row.color.trim(),
-        stockLevel: parseInt(row.colorStock?.trim(), 10),
-        price: parseFloat(row.price?.trim()) || 0, // Use product price or default to 0
-      });
-    }
-
-    return variants;
+  private async parseExcel(file: Express.Multer.File): Promise<any[]> {
+    const workbook = xlsx.read(file.buffer, { type: 'buffer' });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+    return xlsx.utils.sheet_to_json(sheet);
   }
+
+
+  async downloadTemplate(res: Response) {
+    const filePath = path.join(process.cwd(), 'public', 'product.xlsx'); 
+
+    if (!fs.existsSync(filePath)) {
+      console.error('File not found at:', filePath);
+      throw new Error('Template file not found');
+    }
+
+    res.download(filePath, 'product.xlsx', (err) => {
+      if (err) {
+        console.error('Error downloading file:', err);
+        throw new Error('Error downloading file');
+      }
+    });
+  }
+
 }

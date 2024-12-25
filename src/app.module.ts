@@ -16,8 +16,9 @@ import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { Customer } from './customer.entity';
 import { NotificationsService } from './notifications/notifications.service';
-import path from 'path';
+import path, { join } from 'path';
 import * as fs from 'fs';
+import { ServeStaticModule } from '@nestjs/serve-static';
 
 @Module({
   imports: [
@@ -34,6 +35,9 @@ import * as fs from 'fs';
     }),
     ConfigModule.forRoot({
       isGlobal: true,
+    }),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
     }),
     ProductModule, 
     InventoryModule,
