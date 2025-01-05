@@ -32,4 +32,11 @@ export class NotificationsService {
         this.notifyOrderUpdate(order.id, order.status); // Trigger notification
         return updatedOrder; 
     }
+
+    notifyLowStock(productId: number, stockLevel: number) {
+        console.log(`Product #${productId} is low on stock. Current stock: ${stockLevel}`);
+        // Real notification logic (e.g., email) can go here
+    }
+    
+    
 }

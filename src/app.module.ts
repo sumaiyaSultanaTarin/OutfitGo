@@ -19,6 +19,7 @@ import { NotificationsService } from './notifications/notifications.service';
 import path, { join } from 'path';
 import * as fs from 'fs';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { MailerModule } from '@nestjs-modules/mailer';
 
 @Module({
   imports: [
@@ -39,7 +40,8 @@ import { ServeStaticModule } from '@nestjs/serve-static';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
     }),
-    
+
+   
     ProductModule, 
     InventoryModule,
     PerformanceModule,

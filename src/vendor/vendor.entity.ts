@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   JoinColumn,
+  OneToMany,
   OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -10,6 +11,7 @@ import {
 import { Profile } from './profile.entity';
 import { StorePolicies } from './store-policies.entity';
 import { PaymentInfo } from './payment-info.entity';
+import { Product } from 'src/Product/product.entity';
 
 @Entity('vendors')
 export class Vendor {
@@ -39,4 +41,7 @@ export class Vendor {
 
   @OneToOne(() => PaymentInfo, (paymentInfo) => paymentInfo.vendor)
   paymentInfo: PaymentInfo;
+
+
+
 }
