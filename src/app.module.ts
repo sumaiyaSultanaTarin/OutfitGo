@@ -20,6 +20,7 @@ import path, { join } from 'path';
 import * as fs from 'fs';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { MailerModule } from '@nestjs-modules/mailer';
+import { MulterModule } from '@nestjs/platform-express';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { MailerModule } from '@nestjs-modules/mailer';
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, '..', 'public'),
     }),
+  
 
    
     ProductModule, 

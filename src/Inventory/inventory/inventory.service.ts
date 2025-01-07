@@ -5,6 +5,10 @@ import { Repository } from 'typeorm';
 import { RestockRequest } from '../restock-request.entity';
 import { Product } from 'src/Product/product.entity';
 import { NotificationsService } from 'src/notifications/notifications.service';
+import { Parser } from 'json2csv'; 
+import * as PDFDocument from 'pdfkit'; 
+import * as fs from 'fs';
+import * as csv from 'csv-parser';
 
 @Injectable()
 export class InventoryService {
@@ -94,4 +98,50 @@ export class InventoryService {
       relations: ['product'],
     });
   }
+
+  //To Exprot InventorY data as CSV
+  
+  async exportInventoryAsCSV(): Promise<string> {
+    const products = await this.productRepository.find();
+    const fields = ['id', 'name', 'price', 'stockLevel', 'category'];
+    const parser = new Parser({ fields });
+    const csv = parser.parse(products);
+
+    const filePath = './inventory-report.csv';
+    fs.writeFileSync(filePath, csv);
+    return filePath;
+  }
+
+  //To Export Inventory data as PDF
+    async exportInventoryAsPDF(): Promise<string> {
+        const products = await this.productRepository.find();
+        const filePath = './inventory-report.pdf';
+        const doc = new PDFDocument();
+        const writeStream = fs.createWriteStream(filePath);
+        doc.pipe(writeStream);   
+    
+        doc.fontSize(25).text('Inventory Report', { align: 'center' });
+        doc.moveDown();
+        products.forEach((product) => {
+            doc
+              .fontSize(12)
+              .text(
+                `ID: ${product.id}, Name: ${product.name}, Price: $${product.price}, Stock: ${product.stockLevel}, Category: ${product.category}`,
+              )
+              .moveDown();
+          });
+      
+    
+        doc.end();
+        return new Promise((resolve, reject) => {
+            writeStream.on('finish', () => resolve(filePath));
+            writeStream.on('error', (err) => reject(err));
+          });
+    }
+
+    
+
+      
+
+
 }
