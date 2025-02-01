@@ -29,6 +29,15 @@ export class Product{
     @Column({nullable:true})
     imageUrl?: string;
 
+    @Column({ type: 'decimal', precision: 5, scale: 2, nullable: true })
+    discount?: number; 
+
+    @Column({ type: 'timestamp', nullable: true })
+    discountStartDate?: Date;
+  
+    @Column({ type: 'timestamp', nullable: true })
+    discountEndDate?: Date;
+
     @CreateDateColumn()
     createdAt: Date;
 

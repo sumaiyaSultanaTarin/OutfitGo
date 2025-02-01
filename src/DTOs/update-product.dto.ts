@@ -1,4 +1,4 @@
-import { IsEmail,IsString, IsNotEmpty, IsOptional, IsDecimal, IsInt, IsArray } from "class-validator";
+import { IsEmail,IsString, IsNotEmpty, IsOptional, IsDecimal, IsInt, IsArray, IsDateString } from "class-validator";
 import { ProductVariantDto } from "./product-variant.dto";
 
 
@@ -35,5 +35,18 @@ export class UpdateProductDto{
     @IsArray()
     @IsOptional()
     variants?: ProductVariantDto[];  
+
+    @IsDecimal()
+    @IsOptional()
+    discount?: number;
+
+
+    @IsDateString()
+    @IsOptional()
+    discountStartDate?: string;
+
+    @IsDateString()
+    @IsOptional()
+    discountEndDate?: string;
 
 }

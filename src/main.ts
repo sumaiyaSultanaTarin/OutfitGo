@@ -6,12 +6,17 @@ import * as fs from 'fs';
 
 const uploadDir = path.join(__dirname, '..', 'uploads'); 
 if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);  // Create 'uploads' folder if it doesn't exist
+    fs.mkdirSync(uploadDir);  
 }
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.enableCors({
+    origin: "http://localhost:3001",
+    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+    credentials: true,
+  });
   app.useGlobalPipes(new ValidationPipe());
-  await app.listen(process.env.PORT ?? 3000);
+  await app.listen(process.env.PORT ?? 3000);	
 }
 bootstrap();
  

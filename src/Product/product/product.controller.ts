@@ -7,6 +7,7 @@ import {
   Param,
   Post,
   Put,
+  Query,
   Res,
   UploadedFile,
   UseGuards,
@@ -24,8 +25,7 @@ import * as path from 'path';
 import { Response } from 'express';
 import { Headers } from '@nestjs/common';
 
-
-@UseGuards(JwtAuthGuard) // Protect this endpoint
+@UseGuards(JwtAuthGuard) 
 @Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
@@ -60,35 +60,49 @@ export class ProductController {
     return this.productService.viewProduct(id);
   }
 
+  @Get('all')
+  async getAllProducts(): Promise<Product[]> {
+    return this.productService.getAllProducts();
+  }
+
+  @Post('apply-discount')
+  async applyCategoryDiscount(
+    @Query('category') category: string,
+    @Query('discount') discount: number,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+  ): Promise<void> {
+    const parsedStartDate = startDate ? new Date(startDate) : undefined;
+    const parsedEndDate = endDate ? new Date(endDate) : undefined;
+    await this.productService.applyCategoryDiscount(category, discount, parsedStartDate, parsedEndDate);
+  }
+
   @Post('bulk-upload')
-@UseInterceptors(FileInterceptor('file'))
-async bulkUpload(
-  @UploadedFile() file: Express.Multer.File,
-  @Headers('authorization') authHeader: string,
-) {
-  if (!file) {
-    throw new BadRequestException('No file uploaded');
+  @UseInterceptors(FileInterceptor('file'))
+  async bulkUpload(
+    @UploadedFile() file: Express.Multer.File,
+    @Headers('authorization') authHeader: string,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+
+    if (!authHeader) {
+      throw new BadRequestException('Authorization header is missing');
+    }
+
+    return this.productService.processFile(file, authHeader);
   }
 
-  if (!authHeader) {
-    throw new BadRequestException('Authorization header is missing');
+  @Post('preview')
+  @UseInterceptors(FileInterceptor('file'))
+  async previewFile(@UploadedFile() file: Express.Multer.File) {
+    if (!file) {
+      throw new BadRequestException('No file uploaded');
+    }
+    return this.productService.previewFile(file);
   }
 
-  return this.productService.processFile(file, authHeader);
-}
-
- 
-@Post('preview')
-@UseInterceptors(FileInterceptor('file'))
-async previewFile(@UploadedFile() file: Express.Multer.File) {
-  if (!file) {
-    throw new BadRequestException('No file uploaded');
-  }
-  return this.productService.previewFile(file);
-}
-
-
- 
   @Get('template')
   async downloadTemplate(@Res() res: Response) {
     try {

@@ -94,6 +94,34 @@ export class ProductService {
     return this.productRepository.findOne({ where: { id } });
   }
 
+  async getAllProducts(): Promise<Product[]> {
+    const now = new Date();
+    const products = await this.productRepository.find();
+    return products.map((product) => {
+      const isDiscountActive = product.discountStartDate && product.discountEndDate
+        ? now >= product.discountStartDate && now <= product.discountEndDate
+        : true;
+
+      return {
+        ...product,
+        discountedPrice: product.discount && isDiscountActive
+          ? product.price - (product.price * product.discount) / 100
+          : product.price,
+      };
+    });
+  }
+
+  async applyCategoryDiscount(category: string, discount: number, startDate?: Date, endDate?: Date): Promise<void> {
+    const products = await this.productRepository.find({ where: { category } });
+    for (const product of products) {
+      product.discount = discount;
+      product.discountStartDate = startDate || null;
+      product.discountEndDate = endDate || null;
+      await this.productRepository.save(product);
+    }
+  }
+  
+
   //Bulk Upload
   async processFile(file: Express.Multer.File, authHeader: string): Promise<any> {
     const extension = path.extname(file.originalname).toLowerCase();
