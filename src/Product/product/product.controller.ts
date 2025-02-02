@@ -25,7 +25,7 @@ import * as path from 'path';
 import { Response } from 'express';
 import { Headers } from '@nestjs/common';
 
-@UseGuards(JwtAuthGuard) 
+@UseGuards(JwtAuthGuard)
 @Controller('product')
 export class ProductController {
   constructor(private readonly productService: ProductService) {}
@@ -61,7 +61,7 @@ export class ProductController {
   }
 
   @Get('all')
-  async getAllProducts(@Query('page')page =1, @Query('limit') limit =10): Promise<Product[]> {
+  async getAllProducts(@Query('page') page = 1, @Query('limit') limit = 10) {
     return this.productService.getAllProducts(Number(page), Number(limit));
   }
 
@@ -74,14 +74,22 @@ export class ProductController {
   ): Promise<void> {
     const parsedStartDate = startDate ? new Date(startDate) : undefined;
     const parsedEndDate = endDate ? new Date(endDate) : undefined;
-    await this.productService.applyCategoryDiscount(category, discount, parsedStartDate, parsedEndDate);
+    await this.productService.applyCategoryDiscount(
+      category,
+      discount,
+      parsedStartDate,
+      parsedEndDate,
+    );
   }
 
   @Get('searchName')
-async searchProduct(@Query('name') name: string): Promise<Product[]> {
-    return this.productService.productByName(name);
-}
-
+  async searchProduct(
+    @Query('name') name: string,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    return this.productService.productByName(name, Number(page), Number(limit));
+  }
 
   @Post('bulk-upload')
   @UseInterceptors(FileInterceptor('file'))
@@ -100,14 +108,6 @@ async searchProduct(@Query('name') name: string): Promise<Product[]> {
     return this.productService.processFile(file, authHeader);
   }
 
-  @Post('preview')
-  @UseInterceptors(FileInterceptor('file'))
-  async previewFile(@UploadedFile() file: Express.Multer.File) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-    return this.productService.previewFile(file);
-  }
 
   @Get('template')
   async downloadTemplate(@Res() res: Response) {

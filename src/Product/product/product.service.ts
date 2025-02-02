@@ -109,18 +109,18 @@ export class ProductService {
     return this.productRepository.findOne({ where: { id },relations: ['variants'] });
   }
 
-  async getAllProducts(page: number = 1, limit: number = 10): Promise<Product[]> {
+  async getAllProducts(page: number = 1, limit: number = 10): Promise<{products: Product[]; totalPages: number}> {
     const now = new Date();
     const offset = (page - 1) * limit;
 
-    const products = await this.productRepository.find({
+    const [products, total] = await this.productRepository.findAndCount({
       relations: ['variants'],
       take: limit,
       skip: offset,
       order: { createdAt: 'DESC' },
     });
 
-    return products.map((product) => {
+    const fProducts = products.map((product) => {
       const isDiscountActive = product.discount && product.discountStartDate && product.discountEndDate
         ? now >= new Date(product.discountStartDate) && now <= new Date(product.discountEndDate)
         : false;
@@ -133,25 +133,37 @@ export class ProductService {
       };
 
     });
+
+    return{
+      products : fProducts,
+      totalPages : Math.ceil(total/limit),
+    }
   }
 
   //Search By Name
-  async productByName(name : string): Promise<Product[]>
-  {
-    return await this.productRepository.find({
-      where: {name : ILike(`%${name}%`)},
-      relations: ['variants'],
-    })
-  }
+  async productByName(name: string, page: number = 1, limit: number = 10): Promise<{ products: Product[], totalPages: number }> {
+    const [products, total] = await this.productRepository.findAndCount({
+        where: { name: ILike(`%${name}%`) },
+        take: limit,
+        skip: (page - 1) * limit,
+        relations: ['variants'],
+    });
+
+    return {
+        products,
+        totalPages: Math.ceil(total / limit),
+    };
+}
+
 
   async applyCategoryDiscount(category: string, discount: number, startDate?: Date, endDate?: Date): Promise<void> {
     const products = await this.productRepository.find({ where: { category } });
     for (const product of products) {
-      product.discount = discount;
-      product.discountStartDate = startDate || null;
-      product.discountEndDate = endDate || null;
+      product.discount = product.price - (product.price * (discount / 100));
+      product.discountStartDate = startDate;
+      product.discountEndDate = endDate;
       await this.productRepository.save(product);
-    }
+  }
   }
   
 
@@ -184,37 +196,14 @@ export class ProductService {
           imageUrl: row.imageUrl || null,
         });
 
-        const savedProduct = await this.productRepository.save(product);
+      const savedProduct = await this.productRepository.save(product);
+      results.push(savedProduct);
 
-        // Handle product variants (if provided)
-        if (row.variants) {
-          const variants = JSON.parse(row.variants); // Variants should be a JSON array in the file
-          for (const variant of variants) {
-            if (!variant.variantName || !variant.variantValue || !variant.stockLevel) {
-              throw new Error(`Missing required fields for product variant: ${JSON.stringify(variant)}`);
-            }
 
-            const productVariant = this.productVariantRepository.create({
-              product: savedProduct,
-              variantName: variant.variantName,
-              variantValue: variant.variantValue,
-              stockLevel: parseInt(variant.stockLevel, 10),
-            });
-
-            await this.productVariantRepository.save(productVariant);
-          }
-        }
-
-        // Extract vendor's email from token
-    const vendorEmail = this.extractEmailFromAuthHeader(authHeader);
-
-    // Send email notification
-    await this.sendEmailNotification(vendorEmail, results, errors);
-
-        results.push(savedProduct);
-      } catch (error) {
-        errors.push({ error: error.message, row });
-      }
+   
+    }catch(err)
+    {
+      errors.push({err : err.message, row})
     }
 
     return {
@@ -222,51 +211,10 @@ export class ProductService {
       errors,
     };
   }
-
-  private extractEmailFromAuthHeader(authHeader: string): string {
-    if (!authHeader) {
-      throw new BadRequestException('Authorization header is missing');
-    }
-
-    const token = authHeader.split(' ')[1];
-    const payload = this.jwtService.decode(token) as any;
-    if (!payload || !payload.email) {
-      throw new BadRequestException('Invalid token: Email not found');
-    }
-
-    return payload.email;
-  }
-
-  private async sendEmailNotification(email: string, results: any[], errors: any[]): Promise<void> {
-    const successCount = results.length;
-    const errorCount = errors.length;
-
-    const successMessage = successCount
-      ? `${successCount} products were successfully uploaded.`
-      : 'No products were successfully uploaded.';
-    const errorMessage = errorCount
-      ? `${errorCount} products had errors during the upload process.`
-      : 'No errors were encountered.';
-
-    const errorDetails = errors
-      .map((err, index) => `Row ${index + 1}: ${err.error}`)
-      .join('\n');
-
-    console.log(`
-      To: ${email}
-      Subject: Bulk Upload Results
-      Message:
-      Bulk Upload Summary:
-      ${successMessage}
-      ${errorMessage}
-      ${errorCount > 0 ? `Errors:\n${errorDetails}` : ''}
-    `);
-
-    // If integrating with a real email service, use a Mailer module here.
   }
 
   private async parseCSV(file: Express.Multer.File): Promise<any[]> {
-    const results = [];
+    const results: any[] = [];
     return new Promise((resolve, reject) => {
       fs.createReadStream(file.path)
         .pipe(csvParser())
@@ -301,15 +249,6 @@ export class ProductService {
     });
   }
 
-  async previewFile(file: Express.Multer.File): Promise<any> {
-    const extension = path.extname(file.originalname).toLowerCase();
-    if (extension !== '.csv' && extension !== '.xlsx') {
-      throw new BadRequestException('Invalid file format. Only CSV or Excel files are allowed.');
-    }
-  
-    const data = extension === '.csv' ? await this.parseCSV(file) : await this.parseExcel(file);
-    return { preview: data.slice(0, 10) }; // Return the first 10 rows
-  }
-  
+ 
 
 }
