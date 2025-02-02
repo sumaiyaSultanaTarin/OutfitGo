@@ -61,8 +61,8 @@ export class ProductController {
   }
 
   @Get('all')
-  async getAllProducts(): Promise<Product[]> {
-    return this.productService.getAllProducts();
+  async getAllProducts(@Query('page')page =1, @Query('limit') limit =10): Promise<Product[]> {
+    return this.productService.getAllProducts(Number(page), Number(limit));
   }
 
   @Post('apply-discount')
@@ -76,6 +76,12 @@ export class ProductController {
     const parsedEndDate = endDate ? new Date(endDate) : undefined;
     await this.productService.applyCategoryDiscount(category, discount, parsedStartDate, parsedEndDate);
   }
+
+  @Get('searchName')
+async searchProduct(@Query('name') name: string): Promise<Product[]> {
+    return this.productService.productByName(name);
+}
+
 
   @Post('bulk-upload')
   @UseInterceptors(FileInterceptor('file'))

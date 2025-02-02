@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Product } from '../product.entity';
-import { Repository } from 'typeorm';
+import { ILike, Like, Repository } from 'typeorm';
 import { CreateProductDto } from 'src/DTOs/create-product.dto';
 import { UpdateProductDto } from 'src/DTOs/update-product.dto';
 import { ProductVariant } from '../product-variant.entity';
@@ -24,10 +24,15 @@ export class ProductService {
   ) {}
 
   async addProduct(createProductDto: CreateProductDto): Promise<Product> {
-    const { variants, ...productData } = createProductDto;
+    const { variants,discount,discountStartDate,discountEndDate, ...productData } = createProductDto;
 
     // Create and save the product
-    const product = this.productRepository.create(productData);
+    const product = this.productRepository.create({
+      ...productData,
+      discount: discount || null,
+      discountStartDate: discount ? new Date(discountStartDate) : null,
+      discountEndDate: discount ? new Date(discountEndDate) : null,
+    });    
     const savedProduct = await this.productRepository.save(product);
 
     // Save variants if they exist
@@ -51,7 +56,7 @@ export class ProductService {
     id: number,
     updateProductDto: UpdateProductDto,
   ): Promise<Product> {
-    const { variants, ...productData } = updateProductDto;
+    const { variants, discount, discountStartDate, discountEndDate, ...productData } = updateProductDto;
 
     const product = await this.productRepository.findOne({
       where: { id },
@@ -60,9 +65,18 @@ export class ProductService {
     if (!product) {
       throw new Error('Product not found');
     }
+    if(discount && (!discountStartDate || !discountEndDate))
+    {
+      throw new Error('Discount start and end dates are required when applying a discount.')
+    }
 
-    // Update the product fields
-    await this.productRepository.update(id, productData);
+    Object.assign(product, productData, {
+      discount: discount || null,
+      discountStartDate: discount ? new Date(discountStartDate) : null,
+      discountEndDate: discount ? new Date(discountEndDate) : null,
+    });
+
+    await this.productRepository.save(product);
 
     if (variants && variants.length > 0) {
       await this.productVariantRepository.delete({ product: { id } });
@@ -86,21 +100,30 @@ export class ProductService {
   async deleteProduct(id: number): Promise<void> {
     await this.productVariantRepository.delete({ product: { id } });
     await this.productRepository.delete(id);
+    await this.productVariantRepository.delete(id);
   }
 
   //To View a Product
 
   async viewProduct(id: number): Promise<Product> {
-    return this.productRepository.findOne({ where: { id } });
+    return this.productRepository.findOne({ where: { id },relations: ['variants'] });
   }
 
-  async getAllProducts(): Promise<Product[]> {
+  async getAllProducts(page: number = 1, limit: number = 10): Promise<Product[]> {
     const now = new Date();
-    const products = await this.productRepository.find({relations : ['variants']});
+    const offset = (page - 1) * limit;
+
+    const products = await this.productRepository.find({
+      relations: ['variants'],
+      take: limit,
+      skip: offset,
+      order: { createdAt: 'DESC' },
+    });
+
     return products.map((product) => {
-      const isDiscountActive = product.discountStartDate && product.discountEndDate
-        ? now >= product.discountStartDate && now <= product.discountEndDate
-        : true;
+      const isDiscountActive = product.discount && product.discountStartDate && product.discountEndDate
+        ? now >= new Date(product.discountStartDate) && now <= new Date(product.discountEndDate)
+        : false;
 
       return {
         ...product,
@@ -110,6 +133,15 @@ export class ProductService {
       };
 
     });
+  }
+
+  //Search By Name
+  async productByName(name : string): Promise<Product[]>
+  {
+    return await this.productRepository.find({
+      where: {name : ILike(`%${name}%`)},
+      relations: ['variants'],
+    })
   }
 
   async applyCategoryDiscount(category: string, discount: number, startDate?: Date, endDate?: Date): Promise<void> {
