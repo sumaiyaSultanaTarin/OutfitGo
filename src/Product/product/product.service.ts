@@ -96,7 +96,7 @@ export class ProductService {
 
   async getAllProducts(): Promise<Product[]> {
     const now = new Date();
-    const products = await this.productRepository.find();
+    const products = await this.productRepository.find({relations : ['variants']});
     return products.map((product) => {
       const isDiscountActive = product.discountStartDate && product.discountEndDate
         ? now >= product.discountStartDate && now <= product.discountEndDate
@@ -108,6 +108,7 @@ export class ProductService {
           ? product.price - (product.price * product.discount) / 100
           : product.price,
       };
+
     });
   }
 
